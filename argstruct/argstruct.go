@@ -18,6 +18,7 @@ import (
 // TODO: 	slice inputs with CSV handling
 // 			group actions
 // 			environment variable handling
+// 			child of options
 
 const (
 	Version = "0.0.1"
@@ -77,7 +78,7 @@ func (x *ArgStruct) Dump() {
 
 func (x *ArgStruct) Run() error {
 	x.ParseStruct()
-	x.Dump()
+	// x.Dump()
 	if err := x.ParseArgv(); err != nil {
 		return err
 	}
