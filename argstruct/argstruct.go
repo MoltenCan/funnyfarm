@@ -33,7 +33,7 @@ func Run(a ArgStructable) {
 		as:     a,
 		tas:    reflect.TypeOf(a),
 		args:   make(map[string]*argConfig),
-		poss:   make(map[int]*argConfig),
+		pos:    make(map[int]*argConfig),
 		groups: make(map[string][]*argConfig),
 	}
 	if err := x.Run(); err != nil {
@@ -66,7 +66,7 @@ type ArgStruct struct {
 	as      ArgStructable
 	tas     reflect.Type
 	args    map[string]*argConfig
-	poss    map[int]*argConfig
+	pos     map[int]*argConfig
 	groups  map[string][]*argConfig
 }
 
@@ -107,9 +107,9 @@ func (x *ArgFeed) Next() (string, error) {
 func (x *ArgStruct) ParseArgs(args []string) error {
 
 	// we don't need argv[0], it's just us
-	aFeed := ArgFeed{args: args[1:]}
+	aFeed := &ArgFeed{args: args[1:]}
 	// pos starts at 1
-	pos := 1
+	nPos := 1
 
 	for {
 		arg, err := aFeed.Next()
@@ -137,12 +137,12 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 			continue
 		}
 
-		if x.poss[pos] != nil {
-			if err := x.SetArg(x.poss[pos], ArgFeed{args: []string{aFeed.now}}); err != nil {
+		if x.pos[nPos] != nil {
+			if err := x.SetArg(x.pos[nPos], &ArgFeed{args: []string{aFeed.now}}); err != nil {
 				return fmt.Errorf("error setting argument: %s", err)
 			}
-			x.poss[pos].set = true
-			pos++
+			x.pos[nPos].set = true
+			nPos++
 			continue
 		}
 
@@ -160,7 +160,7 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 	return nil
 }
 
-func (x *ArgStruct) SetArg(ac *argConfig, a ArgFeed) error {
+func (x *ArgStruct) SetArg(ac *argConfig, a *ArgFeed) error {
 	// short circuirt bool, as all others require next
 	switch ac.sField.Kind() {
 	case reflect.Bool:
@@ -199,7 +199,7 @@ func (x *ArgStruct) fillArg(ac *argConfig) {
 			ac.group = kv[1]
 		case "default":
 			ac.defaultV = kv[1]
-			if err := x.SetArg(ac, ArgFeed{args: []string{kv[1]}}); err != nil {
+			if err := x.SetArg(ac, &ArgFeed{args: []string{kv[1]}}); err != nil {
 				log.Fatalf("error setting default: %s", err)
 			}
 		case "help":
@@ -234,7 +234,7 @@ func (x *ArgStruct) fillArg(ac *argConfig) {
 	}
 
 	if ac.posN != 0 {
-		x.poss[ac.posN] = ac
+		x.pos[ac.posN] = ac
 	}
 }
 
