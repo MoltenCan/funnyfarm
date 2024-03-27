@@ -165,6 +165,7 @@ func (x *ArgStruct) SetArg(ac *argConfig, a ArgFeed) error {
 	switch ac.sField.Kind() {
 	case reflect.Bool:
 		ac.sField.SetBool(true)
+		return nil
 	}
 
 	n, err := a.Next()
