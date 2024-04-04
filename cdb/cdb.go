@@ -7,16 +7,13 @@ import (
 	"sync"
 )
 
-// cdb the char[] db
-// the whole db is map[uint64]char[]
-
 type DBEntry struct {
 	ID  uint64
 	Val []byte
 	KV  map[string]string
 }
 
-type store struct {
+type Store struct {
 	DB     map[uint64]DBEntry
 	LastID uint64
 }
@@ -25,14 +22,15 @@ type charDB struct {
 	FileLocation string
 	AutoSave     bool
 
-	store store
-	mtx   sync.RWMutex
+	store    Store
+	mtx      sync.RWMutex
+	saveHook func(*Store) error
 }
 
 func newDB(location string) *charDB {
 	return &charDB{
 		FileLocation: location,
-		store: store{
+		store: Store{
 			DB:     make(map[uint64]DBEntry),
 			LastID: 0,
 		},
@@ -46,7 +44,6 @@ func NewDB(location string) (*charDB, error) {
 }
 
 func LoadDB(location string) (*charDB, error) {
-
 	r, err := os.Open(location)
 	if err != nil {
 		return nil, err
@@ -60,8 +57,6 @@ func LoadDB(location string) (*charDB, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(c.store.DB)
 	return c, nil
 }
 
@@ -74,6 +69,14 @@ func (x *charDB) Save() error {
 func (x *charDB) save() error {
 	defer BCCount(BCStart())
 
+	// run save hook
+	if x.saveHook != nil {
+		return x.saveHook(&x.store)
+	}
+	return x.saveLocal()
+}
+
+func (x *charDB) saveLocal() error {
 	// open file
 	fh, err := os.OpenFile(x.FileLocation, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
