@@ -18,7 +18,7 @@ type Store struct {
 	LastID uint64
 }
 
-type charDB struct {
+type CharDB struct {
 	FileLocation string
 	AutoSave     bool
 
@@ -27,8 +27,8 @@ type charDB struct {
 	saveHook func(*Store) error
 }
 
-func newDB(location string) *charDB {
-	return &charDB{
+func newDB(location string) *CharDB {
+	return &CharDB{
 		FileLocation: location,
 		store: Store{
 			DB:     make(map[uint64]DBEntry),
@@ -38,12 +38,12 @@ func newDB(location string) *charDB {
 	}
 }
 
-func NewDB(location string) (*charDB, error) {
+func NewDB(location string) (*CharDB, error) {
 	c := newDB(location)
 	return c, c.Save()
 }
 
-func LoadDB(location string) (*charDB, error) {
+func LoadDB(location string) (*CharDB, error) {
 	r, err := os.Open(location)
 	if err != nil {
 		return nil, err
@@ -60,13 +60,13 @@ func LoadDB(location string) (*charDB, error) {
 	return c, nil
 }
 
-func (x *charDB) Save() error {
+func (x *CharDB) Save() error {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
 	return x.save()
 }
 
-func (x *charDB) save() error {
+func (x *CharDB) save() error {
 	defer BCCount(BCStart())
 
 	// run save hook
@@ -76,7 +76,7 @@ func (x *charDB) save() error {
 	return x.saveLocal()
 }
 
-func (x *charDB) saveLocal() error {
+func (x *CharDB) saveLocal() error {
 	// open file
 	fh, err := os.OpenFile(x.FileLocation, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
@@ -94,18 +94,18 @@ func (x *charDB) saveLocal() error {
 	return nil
 }
 
-func (x *charDB) nextID() uint64 {
+func (x *CharDB) nextID() uint64 {
 	x.store.LastID++
 	return x.store.LastID
 }
 
-func (x *charDB) Set(v []byte) uint64 {
+func (x *CharDB) Set(v []byte) uint64 {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
 	return x.set(v)
 }
 
-func (x *charDB) set(v []byte) uint64 {
+func (x *CharDB) set(v []byte) uint64 {
 	id := x.nextID()
 	x.store.DB[id] = DBEntry{
 		ID:  id,
@@ -116,7 +116,7 @@ func (x *charDB) set(v []byte) uint64 {
 	return id
 }
 
-func (x *charDB) Update(id uint64, v []byte) uint64 {
+func (x *CharDB) Update(id uint64, v []byte) uint64 {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
 
@@ -128,7 +128,7 @@ func (x *charDB) Update(id uint64, v []byte) uint64 {
 	}
 	return x.set(v)
 }
-func (x *charDB) UpdateKVs(id uint64, kvPair ...string) error {
+func (x *CharDB) UpdateKVs(id uint64, kvPair ...string) error {
 	if len(kvPair)%2 != 0 {
 		return fmt.Errorf("invalid kvPair")
 	}
@@ -146,7 +146,7 @@ func (x *charDB) UpdateKVs(id uint64, kvPair ...string) error {
 	return fmt.Errorf("id not found")
 }
 
-func (x *charDB) SetWithKV(v []byte, kv map[string]string) uint64 {
+func (x *CharDB) SetWithKV(v []byte, kv map[string]string) uint64 {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
 
@@ -160,20 +160,20 @@ func (x *charDB) SetWithKV(v []byte, kv map[string]string) uint64 {
 	return id
 }
 
-func (x *charDB) Delete(id uint64) {
+func (x *CharDB) Delete(id uint64) {
 	x.mtx.Lock()
 	defer x.mtx.Unlock()
 	delete(x.store.DB, id)
 	x.autoSave()
 }
 
-func (x *charDB) autoSave() {
+func (x *CharDB) autoSave() {
 	if x.AutoSave {
 		x.save()
 	}
 }
 
-func (x *charDB) Get(id uint64) ([]byte, bool) {
+func (x *CharDB) Get(id uint64) ([]byte, bool) {
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 
@@ -185,7 +185,7 @@ func (x *charDB) Get(id uint64) ([]byte, bool) {
 }
 
 // GetEntry returns a copy of the DBEntry for the given id
-func (x *charDB) GetEntry(id uint64) (DBEntry, bool) {
+func (x *CharDB) GetEntry(id uint64) (DBEntry, bool) {
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 
@@ -196,7 +196,7 @@ func (x *charDB) GetEntry(id uint64) (DBEntry, bool) {
 	return x.store.DB[id], true
 }
 
-func (x *charDB) GetWhere(key, val string) [][]byte {
+func (x *CharDB) GetWhere(key, val string) [][]byte {
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 

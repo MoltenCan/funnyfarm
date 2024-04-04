@@ -12,7 +12,7 @@ import (
 // start db as master or slave
 // if master push the db to fsio and pray
 
-func StartMaster(dbloc, syncloc string) (*charDB, error) {
+func StartMaster(dbloc, syncloc string) (*CharDB, error) {
 	db, err := LoadDB(dbloc)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func StartMaster(dbloc, syncloc string) (*charDB, error) {
 	return db, nil
 }
 
-func StartSlave(dbloc, syncloc string) (*charDB, error) {
+func StartSlave(dbloc, syncloc string) (*CharDB, error) {
 	db := newDB(dbloc)
 
 	go func() {
