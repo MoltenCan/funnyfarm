@@ -1,6 +1,7 @@
 package argstruct
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
 	"log/slog"
@@ -15,13 +16,12 @@ import (
 
 // a very simple and opinionated argument parser based around structs and struct tags
 // partially compete
-// TODO: 	slice inputs with CSV handling
-// 			group actions
+// TODO: 	group actions
 // 			environment variable handling
 // 			child of options
 
 const (
-	Version = "0.0.2"
+	Version = "0.0.3"
 )
 
 type ArgStructable interface {
@@ -131,7 +131,7 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 
 			// no function, set the value
 			if err := x.SetArg(x.args[arg], aFeed); err != nil {
-				return fmt.Errorf("error setting argument: %s", err)
+				return fmt.Errorf("error setting argument %s: %s", arg, err)
 			}
 			x.args[arg].set = true
 			continue
@@ -161,7 +161,7 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 }
 
 func (x *ArgStruct) SetArg(ac *argConfig, a *ArgFeed) error {
-	// short circuirt bool, as all others require next
+	// short circuirt bool, as all others require the next arg
 	switch ac.sField.Kind() {
 	case reflect.Bool:
 		ac.sField.SetBool(true)
@@ -182,6 +182,26 @@ func (x *ArgStruct) SetArg(ac *argConfig, a *ArgFeed) error {
 			return fmt.Errorf("unable to parse int: %s", err)
 		}
 		ac.sField.SetInt(i)
+	case reflect.Slice:
+		r := csv.NewReader(strings.NewReader(n))
+		records, err := r.ReadAll()
+		if err != nil {
+			return fmt.Errorf("unable to parse array: %s", err)
+		}
+		for _, rec := range records {
+			for _, rec2 := range rec {
+				switch ac.sField.Type().Elem().Kind() {
+				case reflect.String:
+					ac.sField.Set(reflect.Append(ac.sField, reflect.ValueOf(rec2)))
+				case reflect.Int:
+					i, err := strconv.Atoi(rec2)
+					if err != nil {
+						return fmt.Errorf("unable to parse int: %s", err)
+					}
+					ac.sField.Set(reflect.Append(ac.sField, reflect.ValueOf(i)))
+				}
+			}
+		}
 	}
 	return nil
 }

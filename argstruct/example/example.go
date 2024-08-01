@@ -7,13 +7,15 @@ import (
 )
 
 type MyApp struct {
-	S          string `argstruct:"help=string to print"`
-	Bob        string `argstruct:"help=bob lives here,andShort"`
-	YouMomma   string `argstruct:"help=yomomma,pos=1"`
-	Two        string `argstruct:"help=aaa,pos=2"`
-	Foo        string `argstruct:"help=Foo Fighters,default=bar"`
-	Zee        int    `argstruct:"help=a number,required,andShort"`
-	SomeOption bool   `argstruct:"help=an option,andshort"`
+	S          string   `argstruct:"help=string to print"`
+	Bob        string   `argstruct:"help=bob lives here,andShort"`
+	YouMomma   string   `argstruct:"help=yomomma,pos=1"`
+	Two        string   `argstruct:"help=aaa,pos=2"`
+	Foo        string   `argstruct:"help=Foo Fighters,default=bar"`
+	Zee        int      `argstruct:"help=a number,required,andShort"`
+	SomeOption bool     `argstruct:"help=an option,andshort"`
+	List       []string `argstruct:"help=list,andshort"`
+	IntList    []int    `argstruct:"help=intlist"`
 }
 
 func (x *MyApp) Run(as *argstruct.ArgStruct) error {
