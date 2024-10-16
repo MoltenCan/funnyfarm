@@ -16,12 +16,11 @@ import (
 
 // a very simple and opinionated argument parser based around structs and struct tags
 // partially compete
-// TODO: 	group actions
-// 			environment variable handling
+// TODO: 	environment variable handling
 // 			child of options
 
 const (
-	Version = "0.0.4"
+	Version = "0.1.0"
 )
 
 type ArgStructable interface {
@@ -41,7 +40,8 @@ func Run(a ArgStructable) {
 		groups: make(map[string][]*argConfig),
 	}
 	if err := x.Run(); err != nil {
-		log.Fatalf(err.Error())
+		os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
 	}
 	os.Exit(0)
 }
@@ -109,7 +109,6 @@ func (x *ArgFeed) Next() (string, error) {
 }
 
 func (x *ArgStruct) ParseArgs(args []string) error {
-
 	// we don't need argv[0], it's just us
 	aFeed := &ArgFeed{args: args[1:]}
 	// pos starts at 1
@@ -158,6 +157,23 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 	for _, ac := range x.args {
 		if ac.required && !ac.set {
 			return fmt.Errorf("required argument not set: %s", strings.Join(ac.assignedFlags, " or "))
+		}
+	}
+
+	for _, ac := range x.groups {
+		seen := false
+		for _, ac2 := range ac {
+			if ac2.set {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			tags := []string{}
+			for _, ac2 := range ac {
+				tags = append(tags, strings.Join(ac2.assignedFlags, "|"))
+			}
+			return fmt.Errorf("at least one option from %s must be set: %s", ac[0].group, strings.Join(tags, " or "))
 		}
 	}
 
@@ -233,7 +249,7 @@ func (x *ArgStruct) fillArg(ac *argConfig) {
 		case "andshort":
 			ac.andShort = true
 		case "env":
-			ac.noEnv = true
+			ac.noEnv = true // TODO
 		case "pos":
 			i, _ := strconv.Atoi(kv[1])
 			ac.posN = i
@@ -286,17 +302,19 @@ func (x *ArgStruct) ParseStruct() {
 	}
 
 	// auto version
-	if hv, ok := x.as.(HasVersion); ok {
-		ac := &argConfig{
-			name: "version",
-			tag:  "help=shows version",
-			f: func() {
-				fmt.Println(x.appName, hv.Version())
-				os.Exit(0)
-			},
-			sField: reflect.ValueOf(false),
+	if !slices.Contains(maps.Keys(x.args), "--version") {
+		if hv, ok := x.as.(HasVersion); ok {
+			ac := &argConfig{
+				name: "version",
+				tag:  "help=shows version",
+				f: func() {
+					fmt.Println(x.appName, hv.Version())
+					os.Exit(0)
+				},
+				sField: reflect.ValueOf(false),
+			}
+			x.fillArg(ac)
 		}
-		x.fillArg(ac)
 	}
 
 	// auto help
@@ -310,7 +328,7 @@ func (x *ArgStruct) ParseStruct() {
 		x.fillArg(ac)
 	}
 
-	// auto version
+	// auto debug
 	if !slices.Contains(maps.Keys(x.args), "--debug") {
 		ac := &argConfig{
 			name:   "debug",
@@ -354,7 +372,12 @@ func (x *ArgStruct) PrintHelp() {
 		}
 
 		fmt.Println("")
-		fmt.Printf("  %-17s required: %v", "", ac.required)
+		if ac.required && ac.group != "" {
+			fmt.Printf("  %-17s required: %v", "", ac.required)
+		}
+		if ac.group != "" {
+			fmt.Printf("  %-17s required: true", "")
+		}
 
 		if ac.defaultV != "" {
 			fmt.Printf(" default: %s", ac.defaultV)
@@ -362,10 +385,27 @@ func (x *ArgStruct) PrintHelp() {
 		if ac.group != "" {
 			fmt.Printf(" group: %s", ac.group)
 		}
-		if !ac.noEnv {
-			fmt.Printf(" var: %s_%s (TODO)", strings.ToUpper(x.appName), strings.ToUpper(ac.name))
-		}
+		// TODO ENV
+		// if !ac.noEnv {
+		// 	fmt.Printf(" var: %s_%s (TODO)", strings.ToUpper(x.appName), strings.ToUpper(ac.name))
+		// }
 		fmt.Println()
+	}
+
+	if len(x.groups) != 0 {
+		fmt.Println()
+		fmt.Println("groups: at least one must be set in this group")
+		for _, g := range x.groups {
+			fmt.Printf("  %-15s", g[0].group)
+			for i, ac := range g {
+				if i != 0 {
+					fmt.Printf(" or ")
+				}
+				fmt.Printf("%s", strings.Join(ac.assignedFlags, "|"))
+			}
+			fmt.Println()
+		}
+
 	}
 
 	os.Exit(1)
