@@ -21,11 +21,15 @@ import (
 // 			child of options
 
 const (
-	Version = "0.0.3"
+	Version = "0.0.4"
 )
 
 type ArgStructable interface {
 	Run(*ArgStruct) error
+}
+
+type HasVersion interface {
+	Version() string
 }
 
 func Run(a ArgStructable) {
@@ -281,8 +285,22 @@ func (x *ArgStruct) ParseStruct() {
 		x.fillArg(ac)
 	}
 
-	if !slices.Contains(maps.Keys(x.args), "-h") && !slices.Contains(maps.Keys(x.args), "--help") {
+	// auto version
+	if hv, ok := x.as.(HasVersion); ok {
+		ac := &argConfig{
+			name: "version",
+			tag:  "help=shows version",
+			f: func() {
+				fmt.Println(x.appName, hv.Version())
+				os.Exit(0)
+			},
+			sField: reflect.ValueOf(false),
+		}
+		x.fillArg(ac)
+	}
 
+	// auto help
+	if !slices.Contains(maps.Keys(x.args), "-h") && !slices.Contains(maps.Keys(x.args), "--help") {
 		ac := &argConfig{
 			name:   "help",
 			tag:    "help=show this help message,andShort",
@@ -292,6 +310,7 @@ func (x *ArgStruct) ParseStruct() {
 		x.fillArg(ac)
 	}
 
+	// auto version
 	if !slices.Contains(maps.Keys(x.args), "--debug") {
 		ac := &argConfig{
 			name:   "debug",

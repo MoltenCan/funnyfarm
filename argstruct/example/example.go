@@ -18,6 +18,10 @@ type MyApp struct {
 	IntList    []int    `argstruct:"help=intlist"`
 }
 
+func (x *MyApp) Version() string {
+	return "1.0.0"
+}
+
 func (x *MyApp) Run(as *argstruct.ArgStruct) error {
 	fmt.Printf("%+v\n", x)
 	return nil
