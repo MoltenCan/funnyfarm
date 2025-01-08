@@ -21,7 +21,7 @@ import (
 // 			child of options
 
 const (
-	Version = "0.1.1"
+	Version = "0.1.2"
 )
 
 type ArgStructable interface {
@@ -352,7 +352,7 @@ func (x *ArgStruct) ParseStruct() {
 }
 
 func (x *ArgStruct) PrintHelp() {
-	fmt.Println(x.AppName, " usage:")
+	fmt.Println(x.AppName, "usage:")
 
 	seen := []string{}
 
