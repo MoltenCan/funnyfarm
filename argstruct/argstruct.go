@@ -21,7 +21,7 @@ import (
 // 			child of options
 
 const (
-	Version = "0.1.2"
+	Version = "0.1.3"
 )
 
 type ArgStructable interface {
@@ -319,7 +319,22 @@ func (x *ArgStruct) ParseStruct() {
 				name: "version",
 				tag:  "help=shows version",
 				f: func() {
-					fmt.Println(x.AppName, x.AppVersion)
+					x.PrintVersion()
+					os.Exit(0)
+				},
+				sField: reflect.ValueOf(false),
+			}
+			x.fillArg(ac)
+		}
+	}
+
+	if !slices.Contains(maps.Keys(x.args), "--versionlong") {
+		if _, ok := x.as.(HasVersion); ok {
+			ac := &argConfig{
+				name: "versionlong",
+				tag:  "help=shows long version",
+				f: func() {
+					x.PrintVersionLong()
 					os.Exit(0)
 				},
 				sField: reflect.ValueOf(false),
@@ -349,6 +364,7 @@ func (x *ArgStruct) ParseStruct() {
 		}
 		x.fillArg(ac)
 	}
+
 }
 
 func (x *ArgStruct) PrintHelp() {
@@ -391,7 +407,7 @@ func (x *ArgStruct) PrintHelp() {
 		}
 
 		if ac.defaultV != "" {
-			fmt.Printf(" default: %s", ac.defaultV)
+			fmt.Printf(" %-17s default: %s", " ", ac.defaultV)
 		}
 		if ac.group != "" {
 			fmt.Printf(" group: %s", ac.group)
@@ -400,7 +416,6 @@ func (x *ArgStruct) PrintHelp() {
 		// if !ac.noEnv {
 		// 	fmt.Printf(" var: %s_%s (TODO)", strings.ToUpper(x.appName), strings.ToUpper(ac.name))
 		// }
-
 		fmt.Println()
 	}
 
@@ -417,13 +432,23 @@ func (x *ArgStruct) PrintHelp() {
 			}
 			fmt.Println()
 		}
-
+		fmt.Println()
 	}
 
-	fmt.Println(x.AppName, x.AppVersion, x.AppModule)
-	os.Exit(1)
+	x.PrintVersionLong()
+	os.Exit(0)
 }
 
 func (x *ArgStruct) EnableDebug() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
+}
+
+func (x *ArgStruct) PrintVersion() {
+	fmt.Println(x.AppVersion)
+}
+func (x *ArgStruct) PrintVersionLong() {
+	fmt.Println("app info:")
+	fmt.Printf("  %-17s %s\n", "name", x.AppName)
+	fmt.Printf("  %-17s %s\n", "version", x.AppVersion)
+	fmt.Printf("  %-17s %s\n", "module", x.AppModule)
 }
