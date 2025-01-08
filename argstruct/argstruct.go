@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -20,7 +21,7 @@ import (
 // 			child of options
 
 const (
-	Version = "0.1.0"
+	Version = "0.1.1"
 )
 
 type ArgStructable interface {
@@ -66,12 +67,14 @@ type argConfig struct {
 }
 
 type ArgStruct struct {
-	appName string
-	as      ArgStructable
-	tas     reflect.Type
-	args    map[string]*argConfig
-	pos     map[int]*argConfig
-	groups  map[string][]*argConfig
+	AppName    string
+	AppVersion string
+	AppModule  string
+	as         ArgStructable
+	tas        reflect.Type
+	args       map[string]*argConfig
+	pos        map[int]*argConfig
+	groups     map[string][]*argConfig
 }
 
 func (x *ArgStruct) Dump() {
@@ -282,7 +285,15 @@ func (x *ArgStruct) ParseStruct() {
 	// deref through the pointer
 	as := reflect.ValueOf(x.as).Elem()
 
-	x.appName = strings.ToLower(as.Type().Name())
+	// fill app name, version and module
+	x.AppName = strings.ToLower(as.Type().Name())
+	if _, ok := x.as.(HasVersion); ok {
+		x.AppVersion = x.as.(HasVersion).Version()
+	}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		x.AppModule = info.Path
+	}
+
 	for i := 0; i < as.NumField(); i++ {
 		field := as.Field(i)
 
@@ -303,12 +314,12 @@ func (x *ArgStruct) ParseStruct() {
 
 	// auto version
 	if !slices.Contains(maps.Keys(x.args), "--version") {
-		if hv, ok := x.as.(HasVersion); ok {
+		if _, ok := x.as.(HasVersion); ok {
 			ac := &argConfig{
 				name: "version",
 				tag:  "help=shows version",
 				f: func() {
-					fmt.Println(x.appName, hv.Version())
+					fmt.Println(x.AppName, x.AppVersion)
 					os.Exit(0)
 				},
 				sField: reflect.ValueOf(false),
@@ -341,7 +352,7 @@ func (x *ArgStruct) ParseStruct() {
 }
 
 func (x *ArgStruct) PrintHelp() {
-	fmt.Println(x.appName + " usage:")
+	fmt.Println(x.AppName, " usage:")
 
 	seen := []string{}
 
@@ -389,6 +400,7 @@ func (x *ArgStruct) PrintHelp() {
 		// if !ac.noEnv {
 		// 	fmt.Printf(" var: %s_%s (TODO)", strings.ToUpper(x.appName), strings.ToUpper(ac.name))
 		// }
+
 		fmt.Println()
 	}
 
@@ -408,6 +420,7 @@ func (x *ArgStruct) PrintHelp() {
 
 	}
 
+	fmt.Println(x.AppName, x.AppVersion, x.AppModule)
 	os.Exit(1)
 }
 
