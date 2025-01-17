@@ -21,7 +21,7 @@ import (
 // 			child of options
 
 const (
-	Version = "0.1.4"
+	Version = "0.1.5"
 )
 
 type ArgStructable interface {
@@ -137,13 +137,10 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 			}
 
 			// no function, set the value
-			fmt.Println("setting", arg)
 			if err := x.SetArg(x.args[arg], aFeed); err != nil {
 				return fmt.Errorf("error setting argument %s: %s", arg, err)
 			}
 			x.args[arg].set = true
-			fmt.Printf("%+v\n", x.args[arg])
-			fmt.Printf("%+v\n", x.as)
 			continue
 		}
 
