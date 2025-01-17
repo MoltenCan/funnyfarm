@@ -21,7 +21,7 @@ import (
 // 			child of options
 
 const (
-	Version = "0.1.3"
+	Version = "0.1.4"
 )
 
 type ArgStructable interface {
@@ -59,11 +59,12 @@ type argConfig struct {
 	posN          int
 	assignedFlags []string
 
-	f      func()
-	sField reflect.Value
-	name   string
-	tag    string
-	set    bool
+	f          func()
+	sField     reflect.Value
+	name       string
+	tag        string
+	set        bool
+	setDefault bool
 }
 
 type ArgStruct struct {
@@ -136,10 +137,13 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 			}
 
 			// no function, set the value
+			fmt.Println("setting", arg)
 			if err := x.SetArg(x.args[arg], aFeed); err != nil {
 				return fmt.Errorf("error setting argument %s: %s", arg, err)
 			}
 			x.args[arg].set = true
+			fmt.Printf("%+v\n", x.args[arg])
+			fmt.Printf("%+v\n", x.as)
 			continue
 		}
 
@@ -164,9 +168,10 @@ func (x *ArgStruct) ParseArgs(args []string) error {
 	}
 
 	for _, ac := range x.groups {
+		// first round see if it was set by the args
 		seen := false
 		for _, ac2 := range ac {
-			if ac2.set {
+			if ac2.set || ac2.setDefault {
 				seen = true
 				break
 			}
@@ -245,6 +250,7 @@ func (x *ArgStruct) fillArg(ac *argConfig) {
 			if err := x.SetArg(ac, &ArgFeed{args: []string{kv[1]}}); err != nil {
 				log.Fatalf("error setting default: %s", err)
 			}
+			ac.setDefault = true
 		case "help":
 			ac.help = kv[1]
 		case "flag":
@@ -364,7 +370,6 @@ func (x *ArgStruct) ParseStruct() {
 		}
 		x.fillArg(ac)
 	}
-
 }
 
 func (x *ArgStruct) PrintHelp() {
@@ -399,15 +404,16 @@ func (x *ArgStruct) PrintHelp() {
 		}
 
 		fmt.Println("")
+		fmt.Printf("  %-17s", "")
 		if ac.required && ac.group != "" {
-			fmt.Printf("  %-17s required: %v", "", ac.required)
+			fmt.Printf(" required: %v", ac.required)
 		}
 		if ac.group != "" {
-			fmt.Printf("  %-17s required: true", "")
+			fmt.Printf(" required: true")
 		}
 
 		if ac.defaultV != "" {
-			fmt.Printf(" %-17s default: %s", " ", ac.defaultV)
+			fmt.Printf(" default: %s", ac.defaultV)
 		}
 		if ac.group != "" {
 			fmt.Printf(" group: %s", ac.group)
